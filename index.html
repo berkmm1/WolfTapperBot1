@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Tapper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Oswald", sans-serif;
+            text-align: center;
+            background-color: #000000;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #tabs {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #333;
+        }
+        .tab-button {
+            font-family: "Oswald", sans-serif;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+        }
+        .tab-button:hover {
+            color: #00ff00;
+        }
+        .tab-content {
+            display: none;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        #tap-tab, #referrals-tab, #leaderboard-tab, #tasks-tab, #wallet-tab, #markets-tab {
+            display: none;
+        }
+        #tap-tab.active, #referrals-tab.active, #leaderboard-tab.active, #tasks-tab.active, #wallet-tab.active, #markets-tab.active {
+            display: block;
+        }
+        #scoreboard {
+            padding: 10px;
+            z-index: 10;
+        }
+        #score, #energy {
+            margin: 5px 0;
+        }
+        #coinContainer {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 5;
+        }
+        #coin {
+            width: 200px;
+            height: 200px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            animation: notcoinPulse 2s infinite;
+        }
+        #coin:active {
+            transform: scale(0.95);
+        }
+        @keyframes notcoinPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #rocket {
+            display: none;
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            animation: rocketFly 2s infinite;
+            z-index: 15;
+        }
+        @keyframes rocketFly {
+            0% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-20px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+        .button-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        .wallet-button, .invite-button {
+            padding: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .wallet-button img, .invite-button img {
+            width: 90px;
+            height: auto;
+            display: block;
+        }
+        #boosters, #shop {
+            position: absolute;
+            top: 80px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+        }
+        .boost-button, .shop-button {
+            font-family: "Oswald", sans-serif;
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .boost-button:hover, .shop-button:hover {
+            background-color: #cccccc;
+        }
+        #tasks, #leaderboard, #referral-info {
+            position: absolute;
+            top: 120px;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            z-index: 10;
+        }
+        #energyWait {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="tabs">
+        <button class="tab-button" onclick="openTab('tap-tab')">Tap</button>
+        <button class="tab-button" onclick="openTab('referrals-tab')">Referrals</button>
+        <button class="tab-button" onclick="openTab('leaderboard-tab')">Leaderboard</button>
+        <button class="tab-button" onclick="openTab('tasks-tab')">Tasks</button>
+        <button class="tab-button" onclick="openTab('wallet-tab')">Wallet</button>
+        <button class="tab-button" onclick="openTab('markets-tab')">Markets</button>
+    </div>
+
+    <div id="tap-tab" class="tab-content active">
+        <div id="scoreboard">
+            <p id="score">Score: 0</p>
+            <p id="energy">Energy: 100/100</p>
+        </div>
+        <div id="boosters">
+            <button class="boost-button" onclick="buyMultitap()">Multitap (Level: <span id="multitapLevel">1</span>)</button>
+            <button class="boost-button" onclick="buyEnergyBoost()">Energy Boost (Level: <span id="energyBoostLevel">1</span>)</button>
+        </div>
+        <div id="coinContainer">
+            <img id="coin" src="https://i.imgur.com/kVw1MLd.png" alt="Wolf Head">
+            <div id="rocket">🚀</div>
+        </div>
+        <div class="button-container">
+            <button class="invite-button" onclick="inviteFriends()">
+                <img src="https://cdn-icons-png.flaticon.com/512/194/194271.png" alt="Invite Friends Logo">
+            </button>
+            <button class="wallet-button" onclick="connectWallet()">
+                <img src="https://cdn-icons-png.flaticon.com/512/1060/1060231.png" alt="Wallet Logo">
+            </button>
+        </div>
+        <div id="energyWait">
+            <p>Energy depleted! Wait 6 hours to recharge.</p>
+            <p id="waitTime"></p>
+        </div>
+    </div>
+
+    <div id="referrals-tab" class="tab-content">
+        <div id="referral-info">
+            <h3>Referral System</h3>
+            <p>Invite friends with your link: <span id="referralLink"></span></p>
+            <p>Referrals: <span id="referralCount">0</span> (Earn 500 points each)</p>
+            <button class="boost-button" onclick="copyReferralLink()">Copy Link</button>
+        </div>
+    </div>
+
+    <div id="leaderboard-tab" class="tab-content">
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <ul id="leaderboardList"></ul>
+        </div>
+    </div>
+
+    <div id="tasks-tab" class="tab-content">
+        <div id="tasks">
+            <h3>Tasks</h3>
+            <p>Task 1: Reach 100 taps! (<span id="clickCount">0</span>/100) - Reward: 500 points</p>
+            <p>Task 2: Reach 5000 score! (<span id="taskScore">0</span>/5000) - Reward: 1000 points</p>
+        </div>
+    </div>
+
+    <div id="wallet-tab" class="tab-content">
+        <div id="wallet-info">
+            <h3>Wallet</h3>
+            <p>Score to Convert: <span id="convertibleScore">0</span></p>
+            <button class="boost-button" onclick="claimTokens()">Claim WolfCoin (1000 Score = 1 WolfCoin)</button>
+            <p>Payment via CoinPayments: <a href="http://coinpayments.net" target="_blank">Pay Now</a></p>
+        </div>
+    </div>
+
+    <div id="markets-tab" class="tab-content">
+        <div id="shop">
+            <h3>Markets</h3>
+            <button class="shop-button" onclick="buyItem('10BoostPack')">10 Boost Pack (0.1 TON)</button>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+    <script>
+        const botToken = "7930121420:AAHUu05TTOBAxLF_Uei6IvoP-mHE_ENqDKo"; // Bot API anahtarı
+        let score = 0;
+        let energy = 100;
+        let maxEnergy = 100;
+        let clickPower = 1;
+        let rocketActive = false;
+        let clickCount = 0;
+        let multitapLevel = 1;
+        let energyBoostLevel = 1;
+        let referralCount = 0;
+        let tonConnect = null;
+        let energyWaitTimeout = null;
+        let boostCount = 0;
+
+        const scoreDisplay = document.getElementById("score");
+        const energyDisplay = document.getElementById("energy");
+        const coin = document.getElementById("coin");
+        const rocket = document.getElementById("rocket");
+        const clickCountDisplay = document.getElementById("clickCount");
+        const taskScoreDisplay = document.getElementById("taskScore");
+        const multitapLevelDisplay = document.getElementById("multitapLevel");
+        const energyBoostLevelDisplay = document.getElementById("energyBoostLevel");
+        const referralCountDisplay = document.getElementById("referralCount");
+        const referralLinkDisplay = document.getElementById("referralLink");
+        const convertibleScoreDisplay = document.getElementById("convertibleScore");
+        const energyWait = document.getElementById("energyWait");
+        const waitTimeDisplay = document.getElementById("waitTime");
+        const leaderboardList = document.getElementById("leaderboardList");
+
+        window.Telegram.WebApp.ready();
+        const user = window.Telegram.WebApp.initDataUnsafe.user;
+
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        async function initializeTonConnect() {
+            tonConnect = new TonConnectSDK.TonConnect({
+                manifestUrl: 'https://YOUR_SERVER/tonconnect-manifest.json',
+            });
+            try {
+                await tonConnect.connect({
+                    jsBridgeKey: 'ton-wallet',
+                    universalLink: 'https://app.tonkeeper.com/ton-connect',
+                });
+                window.Telegram.WebApp.showAlert("Wallet connected successfully!");
+            } catch (error) {
+                window.Telegram.WebApp.showAlert("Error connecting wallet: " + error.message);
+            }
+        }
+
+        initializeTonConnect();
+
+        coin.addEventListener("click", () => {
+            if (energy > 0) {
+                score += clickPower;
+                energy--;
+                clickCount++;
+                updateDisplay();
+                checkTasks();
+
+                if (clickCount >= 100) {
+                    score += 500;
+                    window.Telegram.WebApp.showAlert("Congratulations! Reached 100 taps, 500 points earned!");
+                    clickCount = 0;
+                }
+
+                if (score % 50 === 0 && !rocketActive) {
+                    activateRocket();
+                }
+            } else if (!energyWaitTimeout) {
+                startEnergyWait();
+            }
+        });
+
+        function startEnergyWait() {
+            energyWait.style.display = "block";
+            coin.style.pointerEvents = "none";
+            let timeLeft = 21600000; // 6 hours in ms
+            energyWaitTimeout = setInterval(() => {
+                timeLeft -= 1000;
+                const hours = Math.floor(timeLeft / 3600000);
+                const minutes = Math.floor((timeLeft % 3600000) / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+                waitTimeDisplay.textContent = `${hours}h ${minutes}m ${seconds}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(energyWaitTimeout);
+                    energyWait.style.display = "none";
+                    energy = maxEnergy;
+                    coin.style.pointerEvents = "auto";
+                    energyWaitTimeout = null;
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        setInterval(() => {
+            if (energy < maxEnergy && !energyWaitTimeout) {
+                energy++;
+                updateDisplay();
+                if (energy > 0) coin.style.pointerEvents = "auto";
+            }
+        }, 1000);
+
+        function activateRocket() {
+            rocketActive = true;
+            rocket.style.display = "block";
+            clickPower = 5;
+            setTimeout(() => {
+                rocketActive = false;
+                rocket.style.display = "none";
+                clickPower = multitapLevel + boostCount;
+            }, 10000);
+        }
+
+        function buyMultitap() {
+            const cost = multitapLevel * 100;
+            if (score >= cost) {
+                score -= cost;
+                multitapLevel++;
+                clickPower = multitapLevel + boostCount;
+                multitapLevelDisplay.textContent = multitapLevel;
+                updateDisplay();
+                window.Telegram.WebApp.showAlert(`Multitap upgraded to level ${multitapLevel}! Click power: ${clickPower}`);
+            } else {
+                window.Telegram.WebApp.showAlert("Not enough score!");
+            }
+        }
+
+        function buyEnergyBoost() {
+            const cost = energyBoostLevel * 100;
+            if (score >= cost) {
+                score -= cost;
+                energyBoostLevel++;
+                maxEnergy += 50;
+                energy = maxEnergy;
+                energyBoostLevelDisplay.textContent = energyBoostLevel;
+                updateDisplay();
+                window.Telegram.WebApp.showAlert(`Energy Boost upgraded to level ${energyBoostLevel}! Max energy: ${maxEnergy}`);
+            } else {
+                window.Telegram.WebApp.showAlert("Not enough score!");
+            }
+        }
+
+        async function claimTokens() {
+            if (!tonConnect) {
+                window.Telegram.WebApp.showAlert("Please connect your wallet first!");
+                return;
+            }
+            if (score >= 1000) {
+                const amount = Math.floor(score / 1000);
+                score -= amount * 1000;
+                updateDisplay();
+
+                const payload = {
+                    cmd: "create_transaction",
+                    key: "YOUR_PUBLIC_API_KEY",
+                    secret: "YOUR_PRIVATE_API_KEY",
+                    amount: amount,
+                    currency1: "USD",
+                    currency2: "BTC",
+                    buyer_email: user ? user.email : "guest@example.com",
+                    ipn_url: "http://yourserver.com/ipn",
+                };
+
+                try {
+                    const response = await fetch("http://coinpayments.net/api.php", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await response.json();
+                    if (data.error === "ok") {
+                        window.Telegram.WebApp.showAlert(`${amount} WolfCoin claimed via CoinPayments!`);
+                    } else {
+                        window.Telegram.WebApp.showAlert("Payment error: " + data.error);
+                    }
+                } catch (error) {
+                    window.Telegram.WebApp.showAlert("Network error: " + error.message);
+                }
+            } else {
+                window.Telegram.WebApp.showAlert("Not enough score! Need 1000 to claim 1 WolfCoin.");
+            }
+        }
+
+        async function buyItem(itemId) {
+            if (!tonConnect) {
+                window.Telegram.WebApp.showAlert("Please connect your wallet first!");
+                return;
+            }
+
+            let amount, payload;
+            switch (itemId) {
+                case "10BoostPack":
+                    amount = 100000000; // 0.1 TON
+                    payload = { type: "10BoostPack", value: amount };
+                    boostCount += 10;
+                    clickPower = multitapLevel + boostCount;
+                    break;
+                default:
+                    window.Telegram.WebApp.showAlert("Invalid item!");
+                    return;
+            }
+
+            try {
+                const response = await fetch("http://coinpayments.net/api.php", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        cmd: "create_transaction",
+                        key: "YOUR_PUBLIC_API_KEY",
+                        secret: "YOUR_PRIVATE_API_KEY",
+                        amount: amount / 1000000000, // Convert nanoTON to TON
+                        currency1: "TON",
+                        currency2: "USD",
+                        buyer_email: user ? user.email : "guest@example.com",
+                        ipn_url: "http://yourserver.com/ipn",
+                    }),
+                });
+                const data = await response.json();
+                if (data.error === "ok") {
+                    updateDisplay();
+                    window.Telegram.WebApp.showAlert(`Purchased ${itemId} successfully via CoinPayments!`);
+                } else {
+                    window.Telegram.WebApp.showAlert("Purchase error: " + data.error);
+                }
+            } catch (error) {
+                window.Telegram.WebApp.showAlert("Network error: " + error.message);
+            }
+        }
+
+        function inviteFriends() {
+            const inviteLink = `https://t.me/WolfTapperBot?start=${user ? user.id : 'guest'}`;
+            referralLinkDisplay.textContent = inviteLink;
+            window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=Join%20Wolf%20Tapper!%20My%20score:%20${score}`);
+        }
+
+        function copyReferralLink() {
+            const inviteLink = `https://t.me/WolfTapperBot?start=${user ? user.id : 'guest'}`;
+            navigator.clipboard.writeText(inviteLink);
+            window.Telegram.WebApp.showAlert("Referral link copied to clipboard!");
+        }
+
+        function checkTasks() {
+            if (clickCount >= 100) {
+                score += 500;
+                window.Telegram.WebApp.showAlert("Task 1 completed! +500 points");
+                clickCount = 0;
+            }
+            if (score >= 5000) {
+                score += 1000;
+                window.Telegram.WebApp.showAlert("Task 2 completed! +1000 points");
+                score = 0; // Reset for demo, adjust as needed
+            }
+            updateDisplay();
+        }
+
+        function updateLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+            leaderboard.push({ userId: user ? user.id : "guest", score });
+            leaderboard.sort((a, b) => b.score - a.score).splice(10); // Top 10
+            localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+            leaderboardList.innerHTML = leaderboard.map((entry, index) => `<li>${index + 1}. ${entry.userId}: ${entry.score}</li>`).join("");
+        }
+
+        function updateDisplay() {
+            scoreDisplay.textContent = `Score: ${score}`;
+            energyDisplay.textContent = `Energy: ${energy}/${maxEnergy}`;
+            clickCountDisplay.textContent = clickCount;
+            taskScoreDisplay.textContent = score;
+            multitapLevelDisplay.textContent = multitapLevel;
+            energyBoostLevelDisplay.textContent = energyBoostLevel;
+            referralCountDisplay.textContent = referralCount;
+            convertibleScoreDisplay.textContent = score;
+            localStorage.setItem(`score_${user ? user.id : 'guest'}`, score);
+            localStorage.setItem(`energy_${user ? user.id : 'guest'}`, energy);
+            localStorage.setItem(`clickCount_${user ? user.id : 'guest'}`, clickCount);
+            localStorage.setItem(`multitapLevel_${user ? user.id : 'guest'}`, multitapLevel);
+            localStorage.setItem(`energyBoostLevel_${user ? user.id : 'guest'}`, energyBoostLevel);
+            localStorage.setItem(`maxEnergy_${user ? user.id : 'guest'}`, maxEnergy);
+            localStorage.setItem(`referralCount_${user ? user.id : 'guest'}`, referralCount);
+            localStorage.setItem(`boostCount_${user ? user.id : 'guest'}`, boostCount);
+            updateLeaderboard();
+        }
+
+        window.onload = () => {
+            const userId = user ? user.id : 'guest';
+            score = parseInt(localStorage.getItem(`score_${userId}`)) || 0;
+            energy = parseInt(localStorage.getItem(`energy_${userId}`)) || 100;
+            clickCount = parseInt(localStorage.getItem(`clickCount_${userId}`)) || 0;
+            multitapLevel = parseInt(localStorage.getItem(`multitapLevel_${userId}`)) || 1;
+            energyBoostLevel = parseInt(localStorage.getItem(`energyBoostLevel_${userId}`)) || 1;
+            maxEnergy = parseInt(localStorage.getItem(`maxEnergy_${userId}`)) || 100;
+            referralCount = parseInt(localStorage.getItem(`referralCount_${userId}`)) || 0;
+            boostCount = parseInt(localStorage.getItem(`boostCount_${userId}`)) || 0;
+            clickPower = multitapLevel + boostCount;
+            updateDisplay();
+            if (energy <= 0) startEnergyWait();
+            referralLinkDisplay.textContent = `https://t.me/WolfTapperBot?start=${userId}`;
+        };
+
+        async function connectWallet() {
+            if (!tonConnect) await initializeTonConnect();
+            else window.Telegram.WebApp.showAlert("Wallet already connected!");
+        }
+    </script>
+</body>
+</html>
